@@ -1,0 +1,12 @@
+#!/bin/sh
+name=$(basename $(pwd))
+
+if [ "wpa_supplicant" = "$name" ]; then
+	printf "ERROR: serivce not setup correctly\n" >&2
+	printf '`/etc/sv/wpa_supplicant` must not be symlinked directly, instead `/etc/sv/wpa_supplicant_if` needs to be created\n' \
+		| fold -w 80 -s >&2
+	exit 1
+fi
+
+if="${name##wpa_supplicant_}"
+exec wpa_supplicant -c/etc/wpa_supplicant.conf -i"$if"

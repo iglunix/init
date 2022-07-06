@@ -1,0 +1,49 @@
+#!/bin/sh
+ok() {
+	printf "\033[1;32m ok \033[0m\n"
+}
+
+printf "Mounting pseudo-filesystems"
+{
+	mount -t sysfs sysfs /sys
+	mount -t proc proc /proc
+
+	mkdir -p /dev/shm
+	mount -t tmpfs tmpfs /dev/shm
+
+	mkdir -p /dev/pts
+	mount -t devpts devpts /dev
+
+	mount -t tmpfs tmpfs /tmp
+	mount -t tmpfs tmpfs /run
+
+	mkdir -p /run/user
+	chmod 0777 /run/user
+} 2>/dev/null >/dev/null
+ok
+
+printf "Coldplugging all modules:"
+{
+	find /sys -name modalias | xargs sort -u | xargs -n1 modprobe -b -q
+} 2>/dev/null >/dev/null
+ok
+
+printf "Creating device nodes:"
+mdev -s
+ok
+
+printf "Mount filesystems in fstab:"
+mount -a
+ok
+
+printf "Setting hostname:"
+{
+	hostname -F /etc/hostname
+} 2>/dev/null >/dev/null
+ok
+
+printf "Setting up network loopback:"
+{
+	ip link set lo up
+} 2>/dev/null >/dev/null
+ok
