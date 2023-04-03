@@ -1,0 +1,176 @@
+#!/bin/sh -e
+
+ARG0=$(basename "$0")
+
+ok() {
+	printf '\033[1;32m ok \033[0m\n'
+}
+
+usage_start() {
+	printf '%s start <service name>\n' "$ARG0"
+}
+
+usage_stop() {
+	printf '%s stop <service name>\n' "$ARG0"
+}
+
+usage_status() {
+	printf '%s status <service name>\n' "$ARG0"
+}
+
+usage_pid() {
+	printf '%s pid <service name>\n' "$ARG0"
+}
+
+usage_add() {
+	printf '%s add [--stop] <service name>\n' "$ARG0"
+}
+
+usage_del() {
+	printf '%s del <service name>\n' "$ARG0"
+}
+
+root_req() {
+	if ! [ $(id -u) -eq 0 ]
+	then
+		printf 'Root required\n'
+		exit 1
+	fi
+}
+
+sub_cmds="start
+stop
+status
+pid
+add
+del"
+
+usage() {
+	for cmd in $sub_cmds
+	do
+		"usage_$cmd"
+	done
+}
+
+if [ -z "$1" ]
+then
+	usage
+	exit 1
+fi
+
+if ! printf '%s' "$sub_cmds" | grep "$1" >/dev/null
+then
+	usage
+	exit 1
+fi
+
+cmd_start() {
+	root_req
+	initrun $1
+}
+
+cmd_stop() {
+	root_req
+
+	if [ ! -f "/run/init.d/$1" ]
+	then
+		exit 0
+	fi
+
+	STAT=$(initctl status "$1")
+
+	case "$STAT" in
+		"starting"|"started")
+			;;
+		*)
+			exit 0
+			;;
+	esac
+
+	printf 'Stopping %-16s' "$1"
+
+	PID=$(initctl pid "$1")
+
+	kill -s INT "$PID"
+	timeout=10
+	while [ $timeout -gt 0 ]
+	do
+		if kill -0 $srv_pid 2>/dev/null
+		then
+			timeout=$(($timeout - 1))
+			sleep 1
+		else
+			timeout=0
+		fi
+	done
+
+	# We don't care if this errors if we already killed it.
+	set +e
+	kill -9 $srv_pid 2>/dev/null
+	set -e
+
+	rm -f "/run/init.d/$1"
+
+	ok
+}
+
+cmd_add() {
+	root_req
+	FILE=start.conf
+	if [ "$1" == "--stop" ]
+	then
+		FILE=stop.conf
+		shift
+	fi
+
+	grep '^'"$1"'$' "/etc/conf.d/$FILE" || printf '%s\n' "$1" >> "/etc/conf.d/$FILE"
+}
+
+cmd_del() {
+	root_req
+	TRY="start.conf
+	stop.conf"
+	success=""
+	for FILE in $TRY
+	do
+		if grep '^'"$1"'$' "/etc/conf.d/$TRY"
+		then
+			TMP=$(mktemp)
+			grep -v '^'"$1"'$' "/etc/conf.d/$TRY" > $TMP
+			mv $TMP "/etc/conf.d/$TRY"
+			success="1"
+			break
+		fi
+	done
+
+	if [ -z "$success" ]
+	then
+		printf 'ERROR: service %s is not configured to run on start or stop\n' "$1"
+		exit 1
+	fi
+}
+
+cmd_status() {
+	if [ -f "/run/init.d/$1" ]
+	then
+		tail -n1 "/run/init.d/$1"
+	else
+		printf 'stopped'
+	fi
+}
+
+cmd_pid() {
+	if [ -f "/run/init.d/$1" ]
+	then
+		head -n1 "/run/init.d/$1"
+	else
+		printf '%s is not running\n' "$1"
+		exit 1
+	fi
+}
+
+cmd=$1
+
+shift
+
+"cmd_$cmd" "$@"

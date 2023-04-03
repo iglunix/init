@@ -1,0 +1,27 @@
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+mntfs() {
+	mkdir -p "/$2"
+	mount -t "$1" "$1" "/$2"
+}
+
+mntfs tmpfs tmp
+mntfs tmpfs run
+mntfs tmpfs dev
+mntfs tmpfs dev/shm
+mntfs devpts dev/pts
+mntfs sysfs sys
+mntfs proc proc
+
+printf '0\n' > /proc/sys/kernel/printk
+
+mkdir -p /run/user
+mkdir -p /run/init.d
+
+mdev -s
+
+while read service
+do
+	initrun "$service"
+done < /etc/conf.d/start.conf

@@ -1,0 +1,4 @@
+::sysinit:/lib/init.d/start
+::shutdown:/lib/init.d/stop
+::restart:/sbin/init
+ttyS0::askfirst:/bin/sh

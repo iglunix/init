@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for service in $(ls /run/init.d/)
+do
+	initctl stop "$service"
+done
+
+for service in $(cat /etc/conf.d/stop.conf)
+do
+	initrun "$service"
+done
+
+umount -a -r

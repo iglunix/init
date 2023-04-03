@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# This script is intended to be run by login(1) before suid
+#
+
+if [ -d "/run/user/$LOGIN_UID" ]
+then
+	# We have already logged in somewhere else; no need to start user services
+	exit
+fi
+
+mkdir -p "/run/user/$LOGIN_UID"
+chown "$LOGIN_USER" "/run/user/$LOGIN_UID"
+chmod 700 "/run/user/$LOGIN_UID"
+
+while read service
+do
+	loginrun "$service"
+done < /etc/conf.d/seat.conf

@@ -1,0 +1,6 @@
+#!/bin/sh
+{
+	find /sys -name modalias | xargs sort -u | xargs -n1 modprobe -b -q
+} >/dev/null 2>/dev/null
+
+:

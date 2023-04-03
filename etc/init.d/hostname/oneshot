@@ -1,0 +1,2 @@
+#!/bin/sh
+exec hostname -F /etc/hostname
