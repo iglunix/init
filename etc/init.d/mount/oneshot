@@ -1,5 +1,6 @@
 #!/bin/sh
 if [ -f "/etc/fstab" ]
 then
-	exec mount -a
+	# we must use busybox mount for supporting LABEL= in fstab
+	exec busybox mount -a
 fi
