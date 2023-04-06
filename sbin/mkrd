@@ -1,0 +1,60 @@
+#!/bin/sh -e
+
+DIR=$(mktemp -d)
+arch=$(uname -m)
+
+mkdir -p $DIR/bin
+mkdir -p $DIR/lib
+
+cp -L /bin/sh $DIR/bin
+cp -L /lib/ld-musl-$arch.so.1 $DIR/lib
+
+
+cp -L /bin/toybox $DIR/bin
+cp -L /bin/busybox $DIR/bin
+
+cat > $DIR/init << EOF
+#!/bin/sh
+/bin/toybox mkdir -p /proc
+/bin/toybox mkdir -p /sys
+/bin/toybox mkdir -p /dev
+/bin/toybox mount -t proc proc /proc
+/bin/toybox mount -t sysfs sysfs /sys
+/bin/busybox mdev -s
+
+set -- \$(cat /proc/cmdline)
+
+root=
+for opt
+do
+	case "\$opt" in
+		root=*)
+			root="\${opt##root=}"
+			break
+			;;
+	esac
+done
+
+if [ -z "\$root" ]
+then
+	printf 'ERROR: root not set\n'
+	printf 'dropping to shell\n'
+	exec /bin/sh
+fi
+
+root=\$(/bin/busybox findfs "\$root")
+
+/bin/toybox mkdir -p /mnt
+/bin/busybox mount -t ext4 "\$root" /mnt
+exec /bin/toybox switch_root /mnt
+EOF
+
+chmod +x $DIR/init
+
+out=/boot/initrd
+
+cd $DIR
+
+find . | cpio -H newc -o > $out
+
+rm -rf $DIR
