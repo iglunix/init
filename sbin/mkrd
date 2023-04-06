@@ -46,7 +46,7 @@ root=\$(/bin/busybox findfs "\$root")
 
 /bin/toybox mkdir -p /mnt
 /bin/busybox mount -t ext4 "\$root" /mnt
-exec /bin/toybox switch_root /mnt
+exec /bin/toybox switch_root /mnt /sbin/init
 EOF
 
 chmod +x $DIR/init
