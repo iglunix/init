@@ -2,3 +2,4 @@
 ::shutdown:/lib/init.d/stop
 ::restart:/sbin/init
 ttyS0::askfirst:/bin/sh
+tty1::askfirst:/bin/sh
