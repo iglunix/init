@@ -155,7 +155,7 @@ cmd_status() {
 	then
 		tail -n1 "/run/init.d/$1"
 	else
-		printf 'stopped'
+		printf 'stopped\n'
 	fi
 }
 
