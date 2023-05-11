@@ -1,2 +1,2 @@
 #!/bin/sh
-exec httpd -f -u http
+exec httpd -f -u http -h /srv/http
